@@ -129,41 +129,6 @@ std::pair<double, double> testInterpolationAccuracy(BivariateQuadratic& interp,
     return {avg_bilinear_error, avg_biquad_error};
 }
 
-// Generate output file for visualization
-void generateComparisonData(BivariateQuadratic& interp,
-                           std::function<double(double, double)> func,
-                           const std::string& filename,
-                           double xmin, double ymin, double dx, double dy) {
-    double f3x3[3][3];
-    createGridFromFunction(f3x3, func, xmin, ymin, dx, dy);
-    
-    std::ofstream file(filename);
-    file << "# x y exact bilinear biquad bilinear_error biquad_error\n";
-    
-    int n_samples = 51;  // 51x51 grid for visualization
-    for (int i = 0; i < n_samples; i++) {
-        for (int j = 0; j < n_samples; j++) {
-            // Sample within [xmin, xmin+dx) × [ymin, ymin+dy)
-            double x = xmin + (double)i * dx / n_samples;  // Note: using n_samples instead of (n_samples-1)
-            double y = ymin + (double)j * dy / n_samples;  // to stay within [xmin, xmin+dx)
-            
-            double expected = func(x, y);
-            double bilinear_result = interp.interp_bilinear(f3x3, x, y);
-            double biquad_result = interp.interp_biquad(f3x3, x, y);
-            
-            double bilinear_error = std::abs(expected - bilinear_result);
-            double biquad_error = std::abs(expected - biquad_result);
-            
-            file << std::scientific << std::setprecision(6);
-            file << x << " " << y << " " << expected << " " << bilinear_result << " " 
-                 << biquad_result << " " << bilinear_error << " " << biquad_error << "\n";
-        }
-        file << "\n";  // Blank line for gnuplot
-    }
-    file.close();
-    // std::cout << "Comparison data written to " << filename << "\n";
-}
-
 int main() {
     std::cout << "=================================================================\n";
     std::cout << "     BILINEAR vs BIQUADRATIC INTERPOLATION COMPARISON TESTS     \n";
@@ -242,17 +207,7 @@ int main() {
         std::cout << std::setw(8) << interpBiquadErr;
         std::cout << std::setw(10) << (interpBiquadErr < interpBilinErr ? "Biquad" : "Bilinear");
         std::cout << "\n";
-        
-        // Generate comparison data files for non-polynomial functions
-        if (i >= 8) {  // Non-polynomial functions
-            std::string filename = "comparison_" + std::to_string(i) + ".dat";
-            generateComparisonData(interp, func, filename, xmin, ymin, dx, dy);
-        }
     }
-    
-    std::cout << std::string(82, '-') << "\n";
-    std::cout << "\nVisualization files: comparison_8.dat through comparison_12.dat\n";
-    std::cout << "Usage: gnuplot> splot 'comparison_N.dat' using 1:2:6 title 'Bilinear Error'\n";
     
     return 0;
 }
